@@ -43,11 +43,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         let geoCoder = CLGeocoder()
         let loc = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
         geoCoder.reverseGeocodeLocation(loc) { (placemark, error) in
-            if let area = placemark?.first?.subLocality, let city = placemark?.first?.locality, let state = placemark?.first?.administrativeArea, let country = placemark?.first?.country {
-                self.notifyUser(text: "\(area), \(city) \(state), \(country)")
-            }
+            self.notifyUser(text: self.getUserLocationName(placemark: (placemark?.first)!))
             self.showUserInMap(location: locations.last!)
+            self.addUserLocationAnnotation(location: locations.last!, locationName: self.getUserLocationName(placemark: (placemark?.first)!))
         }
+    }
+    
+    func getUserLocationName(placemark: CLPlacemark) -> String {
+        var locationName = ""
+        if let area = placemark.subLocality, let city = placemark.locality, let state = placemark.administrativeArea, let country = placemark.country {
+            locationName.append("\(area), \(city) \(state), \(country)")
+        }
+        return locationName
     }
 
     func showUserInMap(location: CLLocation) {
@@ -65,5 +72,21 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         UIApplication.shared.scheduleLocalNotification(notification)
     }
     
+    func addUserLocationAnnotation(location: CLLocation, locationName: String) {
+        let userAnnotation = UserLocationAnnotation(title: "Location", locationName: locationName, coordinate: location.coordinate)
+        mapView.addAnnotation(userAnnotation)
+    }
+    
 }
 
+
+extension ViewController: MKMapViewDelegate {
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        let pinAnnotation: MKPinAnnotationView?
+        let anno = annotation as? UserLocationAnnotation
+        let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: "pin") as? MKPinAnnotationView
+        annotationView?.annotation = anno
+        pinAnnotation = annotationView
+        return pinAnnotation
+    }
+}
